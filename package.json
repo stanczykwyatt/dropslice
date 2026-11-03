@@ -1,0 +1,35 @@
+{
+  "name": "dropslice",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Drop an NWB, HDF5, MATLAB, NumPy or Zarr file into your browser and look inside. Nothing is uploaded.",
+  "license": "MIT",
+  "author": "stanczykwyatt",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.2.1",
+    "vite": "8.3.5"
+  },
+  "dependencies": {
+    "@h5web/app": "18.0.0",
+    "@h5web/h5wasm": "18.0.0",
+    "@zarrita/storage": "0.2.0",
+    "h5wasm-plugins": "0.3.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zarrita": "0.7.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stanczykwyatt/dropslice.git"
+  },
+  "homepage": "https://stanczykwyatt.github.io/dropslice/",
+  "engines": {
+    "node": ">=20"
+  }
+}

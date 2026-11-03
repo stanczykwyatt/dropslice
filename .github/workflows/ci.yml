@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - run: npm ci --ignore-scripts
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check the rules (nothing sent anywhere, no pickles, strict page policy)
+        run: node scripts/check-rules.mjs
+
+      - name: Check the committed site matches a fresh build
+        run: |
+          npm run build
+          if ! git diff --quiet -- docs; then
+            echo "::error::docs/ is out of date. Run npm run build and commit it."
+            git diff --stat -- docs
+            exit 1
+          fi
