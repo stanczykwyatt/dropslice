@@ -87,7 +87,7 @@ npm test           # the format readers, in Node
 npm run build      # the site, into docs/
 ```
 
-The format readers in `src/formats/` are plain modules with no browser code, shared with SciLook, a Quick Look extension for the same files on the Mac (coming next). [CONTRIBUTING.md](CONTRIBUTING.md) has more.
+The format readers in `src/formats/` are plain modules with no browser code, shared with [SciLook](https://github.com/stanczykwyatt/scilook), a Quick Look extension for the same files on the Mac. [CONTRIBUTING.md](CONTRIBUTING.md) has more.
 
 ## More free tools
 
