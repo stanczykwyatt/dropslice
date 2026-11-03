@@ -22,7 +22,8 @@ export function parseNpyHeader(bytes) {
     if (/'descr':\s*\[/.test(text)) throw new FormatError("Structured NumPy arrays (with named fields) aren't supported yet.");
     throw new FormatError("This .npy header can't be read; the file may be damaged.");
   }
-  const shape = shapeText.split(",").map((s) => s.trim()).filter(Boolean).map(Number);
+  // Files from Python 2 write long integers with an L, like (3L,).
+  const shape = shapeText.split(",").map((s) => s.trim().replace(/L$/, "")).filter(Boolean).map(Number);
   if (shape.some((d) => !Number.isInteger(d) || d < 0)) throw new FormatError("This .npy file has an odd shape; it may be damaged.");
   return { dtype: parseDescr(descr), shape, fortran, dataOffset: start + headerLength };
 }
@@ -32,6 +33,7 @@ export function parseDescr(descr) {
   if (!m) throw new FormatError(`NumPy type ${descr} isn't supported.`);
   const [, order, kind, n] = m;
   const size = Number(n || 1);
+  if (size < 1) throw new FormatError(`NumPy type ${descr} has no size; the file may be damaged.`);
   const littleEndian = order !== ">";
   switch (kind) {
     case "b":
@@ -65,6 +67,7 @@ function halfToFloat(h) {
 
 /** Decodes all of an array's values in row-major order. */
 export function decodeValues(bytes, offset, count, dtype) {
+  if (offset + count * dtype.size > bytes.byteLength) throw new FormatError("The file ends before its data does; it may be cut short.");
   if (dtype.class === "string") {
     const out = new Array(count);
     for (let i = 0; i < count; i++) {
@@ -94,7 +97,6 @@ export function decodeValues(bytes, offset, count, dtype) {
     const parts = readNumbers(bytes, offset, count * 2, dtype.part);
     return Array.from({ length: count }, (_, i) => [parts[2 * i], parts[2 * i + 1]]);
   }
-  if (offset + count * dtype.size > bytes.byteLength) throw new FormatError("The file ends before its data does; it may be cut short.");
   return readNumbers(bytes, offset, count, dtype);
 }
 

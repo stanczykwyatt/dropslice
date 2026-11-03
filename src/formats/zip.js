@@ -16,10 +16,11 @@ export function readZip(bytes) {
   let count = view.getUint16(end + 10, true);
   let at = view.getUint32(end + 16, true);
   // ZIP64 archives (over 4 GB, or many entries) keep the real numbers in another record.
-  if (count === 0xffff || at === 0xffffffff) {
+  if (count === 0xffff || at === 0xffffffff || view.getUint32(end + 12, true) === 0xffffffff) {
     const locator = end - 20;
     if (locator < 0 || view.getUint32(locator, true) !== 0x07064b50) throw new FormatError("This ZIP archive is damaged.");
     const record = Number(view.getBigUint64(locator + 8, true));
+    if (record + 56 > bytes.length || view.getUint32(record, true) !== 0x06064b50) throw new FormatError("This ZIP archive is damaged.");
     count = Number(view.getBigUint64(record + 32, true));
     at = Number(view.getBigUint64(record + 48, true));
   }
@@ -53,8 +54,9 @@ export function readZip(bytes) {
       method,
       size,
       async read(inflateRaw) {
-        if (view.getUint32(local, true) !== 0x04034b50) throw new FormatError(`The ZIP entry ${name} is damaged.`);
+        if (local + 30 > bytes.length || view.getUint32(local, true) !== 0x04034b50) throw new FormatError(`The ZIP entry ${name} is damaged.`);
         const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
+        if (start + compressedSize > bytes.length) throw new FormatError(`The ZIP entry ${name} is cut short.`);
         const data = bytes.subarray(start, start + compressedSize);
         if (method === 0) return data;
         if (method === 8) {

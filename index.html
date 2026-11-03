@@ -103,7 +103,7 @@
         <ul class="verdicts">
           <li class="key"><b>NWB and HDF5:</b> any size, read lazily, with compressed data (gzip, Blosc, Zstandard, LZ4, LZF and more).</li>
           <li class="key"><b>MATLAB .mat:</b> v5 (the default) and v7.3, with structs, cells, text, logicals and complex numbers.</li>
-          <li><b>NumPy .npy and .npz:</b> every numeric type, text, both memory orders. Pickled objects are never loaded.</li>
+          <li><b>NumPy .npy and .npz:</b> integers, floats, complex numbers, booleans and text, in both memory orders. Pickled objects are never loaded.</li>
           <li><b>Zarr v2 and v3:</b> drop the folder, or open a public store with <code>?url=</code>.</li>
           <li><b>Views:</b> line plots, heatmaps, RGB images, tables and slicing through any dimension, by <a href="https://github.com/silx-kit/h5web">h5web</a>.</li>
         </ul>

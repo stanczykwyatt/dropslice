@@ -42,8 +42,8 @@ If it saves you a trip to Python, [starring the repo](https://github.com/stanczy
 |---|---|---|
 | **NWB, HDF5** | `.nwb`, `.h5`, `.hdf5`, `.hdf`, `.he5` | Any size, read lazily. Compressed with gzip, Blosc, Blosc2, Zstandard, LZ4, LZF, bzip2, bitshuffle and others |
 | **MATLAB v7.3** | `.mat` | It's HDF5 inside |
-| **MATLAB v5** | `.mat` | What `save` writes by default: numbers, text, logicals, structs, cell arrays, complex numbers and sparse matrices, in MATLAB's own dimensions |
-| **NumPy** | `.npy`, `.npz` | Every numeric type, text, both memory orders, both byte orders. Pickled object arrays are refused, never loaded |
+| **MATLAB v5** | `.mat` | What `save` writes by default: numbers, text, logicals, structs, cell arrays and complex numbers, in MATLAB's own dimensions. Sparse matrices show as MATLAB stores them: values, row indices and column starts |
+| **NumPy** | `.npy`, `.npz` | Integers, floats (16 to 64 bits), complex numbers, booleans and text, in both memory orders and byte orders. Pickled object arrays are refused, never loaded; dates and structured arrays aren't supported yet |
 | **Zarr** | `.zarr` folders | Zarr v2 and v3. Drop the folder, or open a public store by address |
 
 Files are recognized by their first bytes, so a misnamed file still opens.

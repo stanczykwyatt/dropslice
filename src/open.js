@@ -16,12 +16,31 @@ const IN_MEMORY_LIMIT = 2 * 1024 ** 3;
 // The most a web address may send for a whole-file format.
 const URL_LIMIT = 1024 ** 3;
 
-async function inflateWith(format, bytes) {
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(format));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+/** Unpacks compressed data, stopping as soon as it passes `limit` bytes, so a small bomb can't fill memory. */
+async function inflateWith(format, bytes, limit) {
+  const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(format)).getReader();
+  const parts = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > limit) {
+      await reader.cancel();
+      throw new FormatError("Compressed data in this file unpacks to more than it says, or more than a browser can hold; the file may be damaged.");
+    }
+    parts.push(value);
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const p of parts) {
+    out.set(p, at);
+    at += p.length;
+  }
+  return out;
 }
-const inflate = (b) => inflateWith("deflate", b);
-const inflateRaw = (b) => inflateWith("deflate-raw", b);
+const inflate = (b) => inflateWith("deflate", b, IN_MEMORY_LIMIT);
+const inflateRaw = (b, size) => inflateWith("deflate-raw", b, Math.min(size ?? IN_MEMORY_LIMIT, IN_MEMORY_LIMIT));
 
 async function fromBytes(name, bytes, kind) {
   if (kind === "npy") return npyGroup(name, bytes);

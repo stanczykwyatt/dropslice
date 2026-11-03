@@ -67,6 +67,8 @@ export async function zarrTree(name, store, nodes) {
         read: async (selection) => {
           const picks = shape.map((_, i) => (selection?.[i] === null || selection?.[i] === undefined ? null : selection[i]));
           const out = await zarr.get(arr, picks);
+          // A 0-d array, or a fully fixed selection, comes back as a plain value.
+          if (out === null || typeof out !== "object") return { shape: [], values: [out] };
           const data = typeof out === "object" && "data" in out ? out.data : out;
           const outShape = typeof out === "object" && "shape" in out ? out.shape : [];
           return { shape: outShape, values: ArrayBuffer.isView(data) ? data : Array.isArray(data) ? data : Array.from(data) };

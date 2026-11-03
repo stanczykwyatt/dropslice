@@ -62,7 +62,7 @@ export async function parseMat5(name, bytes, inflate) {
     } else {
       const data = bytes.subarray(at + tag.dataStart, at + tag.dataStart + tag.size);
       if (tag.type === MATRIX) children.push(readMatrix(data, little, "/", null, budget));
-      at += tag.dataStart + pad8(tag.size);
+      at += tag.small ? 8 : tag.dataStart + pad8(tag.size);
     }
   }
   return group(name, "/", children, { format: "MATLAB 5.0 MAT-file", header });
@@ -98,7 +98,9 @@ function numbers(element, little) {
 }
 
 function text(element, little) {
-  if (element.type === UTF8 || element.type === 1 || element.type === 2) return new TextDecoder().decode(element.bytes);
+  if (element.type === UTF8) return new TextDecoder().decode(element.bytes);
+  // One byte per character: decode byte for byte, so positions stay where MATLAB put them.
+  if (element.type === 1 || element.type === 2) return new TextDecoder("latin1").decode(element.bytes);
   const codes = element.type === UTF16 || element.type === 4 ? numbers({ ...element, type: 4 }, little) : element.type === UTF32 ? numbers({ ...element, type: 6 }, little) : numbers(element, little);
   return Array.from(codes, (c) => String.fromCodePoint(Number(c))).join("");
 }
@@ -121,6 +123,12 @@ function readMatrix(data, little, parentPath, forcedName, budget) {
   const complex = Boolean(flagWords[0] & 0x800);
   const logical = Boolean(flagWords[0] & 0x200);
   const dims = Array.from(numbers(parts.next().value, little), Number);
+  if (dims.some((d) => !Number.isInteger(d) || d < 0)) throw new FormatError("A MAT-file array has an impossible size; the file may be damaged.");
+  // Every stored value count is checked against this before anything is built from it.
+  const count = (values, what) => {
+    if (values.length !== product(dims)) throw new FormatError(`${what} holds ${values.length} values but its size says ${product(dims)}; the file may be damaged.`);
+    return values;
+  };
   const rawName = text(parts.next().value, little);
   const name = forcedName ?? (rawName || "(unnamed)");
   const path = join(parentPath, name);
@@ -132,20 +140,20 @@ function readMatrix(data, little, parentPath, forcedName, budget) {
     const c = CLASSES[cls];
     const attrs = { matlab_class: logical ? "logical" : c.name };
     if (complex) {
-      const re = Array.from(numbers(real, little), Number);
-      const im = Array.from(numbers(imag, little), Number);
+      const re = Array.from(count(numbers(real, little), name), Number);
+      const im = Array.from(count(numbers(imag, little), name), Number);
       const values = toRowMajor(re.map((r, i) => [r, im[i]]), dims);
-      return dataset(name, path, { shape: dims, dtype: { class: "complex", size: c.size * 2 }, attrs, read: async (s) => select(values, dims, s) });
+      // Values are already plain numbers, so the parts are shown as doubles whatever the class.
+      return dataset(name, path, { shape: dims, dtype: { class: "complex", size: 16 }, attrs, read: async (s) => select(values, dims, s) });
     }
-    const values = toRowMajor(toClass(numbers(real, little), c), dims);
-    if (values.length !== n) throw new FormatError(`${name} holds ${values.length} values but its size says ${n}.`);
+    const values = toRowMajor(toClass(count(numbers(real, little), name), c), dims);
     const dtype = logical ? { class: "bool", size: 1 } : { class: c.class, size: c.size };
     const out = logical ? Uint8Array.from(values, (v) => (v ? 1 : 0)) : values;
     return dataset(name, path, { shape: dims, dtype, attrs, read: async (s) => select(out, dims, s) });
   }
   if (cls === 4) {
     // char: rows of text. Column-major, so row r is every rows-th character starting at r.
-    const chars = Array.from(text(parts.next().value, little));
+    const chars = count(Array.from(text(parts.next().value, little)), name);
     const rows = dims[0] ?? 0;
     const cols = n / Math.max(rows, 1);
     const lines = [];
@@ -167,6 +175,9 @@ function readMatrix(data, little, parentPath, forcedName, budget) {
     if (cls === 3) parts.next(); // the object's class name
     const nameLength = Number(numbers(parts.next().value, little)[0]);
     const namesBytes = parts.next().value.bytes;
+    if (!Number.isInteger(nameLength) || nameLength < 1 || nameLength > 64 || namesBytes.length % nameLength !== 0) {
+      throw new FormatError(`The struct ${name} has damaged field names.`);
+    }
     const fields = [];
     for (let i = 0; i * nameLength < namesBytes.length; i++) {
       const raw = namesBytes.subarray(i * nameLength, (i + 1) * nameLength);
@@ -188,8 +199,11 @@ function readMatrix(data, little, parentPath, forcedName, budget) {
     const ir = Array.from(numbers(parts.next().value, little), Number);
     const jc = Array.from(numbers(parts.next().value, little), Number);
     const pr = Float64Array.from(numbers(parts.next().value, little), Number);
+    const pi = complex ? Float64Array.from(numbers(parts.next().value, little), Number) : null;
     const sub = (child, values, dtype) => dataset(child, join(path, child), { shape: [values.length], dtype, read: async (s) => select(values, [values.length], s) });
-    return group(name, path, [sub("row_indices", Int32Array.from(ir), { class: "int", size: 4 }), sub("column_starts", Int32Array.from(jc), { class: "int", size: 4 }), sub("values", pr, { class: "float", size: 8 })], {
+    const kids = [sub("row_indices", Int32Array.from(ir), { class: "int", size: 4 }), sub("column_starts", Int32Array.from(jc), { class: "int", size: 4 }), sub("values", pr, { class: "float", size: 8 })];
+    if (pi) kids.push(sub("imaginary_values", pi, { class: "float", size: 8 }));
+    return group(name, path, kids, {
       matlab_class: "sparse",
       size: dims.join("x"),
       note: "Stored as MATLAB keeps it: values with 0-based row indices, and where each column starts.",

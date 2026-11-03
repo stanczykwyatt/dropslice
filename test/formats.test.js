@@ -181,3 +181,37 @@ test("selections and reordering", () => {
   assert.deepEqual(parseSelection("0,:,:", 3), [0, null, null]);
   assert.deepEqual(parseSelection(undefined, 2), [null, null]);
 });
+
+test("MATLAB v5: a size that disagrees with the data is refused, not padded", async () => {
+  const b = Uint8Array.from(bytes("session.mat"));
+  const at = Buffer.from(b).indexOf("counts");
+  // The two dimensions sit just before the name: [1, 3] becomes [1, 20000].
+  new DataView(b.buffer).setInt32(at - 12, 20000, true);
+  await assert.rejects(parseMat5("x.mat", b, inflate), /holds 3 values but its size says 20000/);
+});
+
+test("MATLAB v5: struct field names of length 0 are refused instead of looping", async () => {
+  const b = Uint8Array.from(bytes("session.mat"));
+  const at = Buffer.from(b).indexOf("rate");
+  new DataView(b.buffer).setInt32(at - 12, 0, true);
+  await assert.rejects(parseMat5("x.mat", b, inflate), /damaged field names/);
+});
+
+const npyWith = (header, data = new Uint8Array(0)) => {
+  let text = header;
+  while ((10 + text.length + 1) % 64) text += " ";
+  text += "\n";
+  const out = new Uint8Array(10 + text.length + data.length);
+  out.set([0x93, 0x4e, 0x55, 0x4d, 0x50, 0x59, 1, 0]);
+  new DataView(out.buffer).setUint16(8, text.length, true);
+  out.set(new TextEncoder().encode(text), 10);
+  out.set(data, 10 + text.length);
+  return out;
+};
+
+test(".npy: zero-size strings and cut-short text are refused; Python 2 shapes read", async () => {
+  assert.throws(() => npyGroup("x.npy", npyWith("{'descr': '|S0', 'fortran_order': False, 'shape': (30000000,), }")), /has no size/);
+  await assert.rejects(npyGroup("x.npy", npyWith("{'descr': '<U4', 'fortran_order': False, 'shape': (5,), }", new Uint8Array(8))).children[0].read(), /cut short/);
+  const old = npyGroup("x.npy", npyWith("{'descr': '<i2', 'fortran_order': False, 'shape': (3L,), }", new Uint8Array([1, 0, 2, 0, 3, 0])));
+  assert.deepEqual(Array.from(await all(old.children[0])), [1, 2, 3]);
+});

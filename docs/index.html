@@ -50,7 +50,7 @@
   }
   </script>
   <style>.drop{background:#ffffff0a;border:1.5px dashed #fff6;border-radius:22px;justify-items:center;gap:10px;width:100%;max-width:640px;margin:4px auto 0;padding:clamp(22px,5vh,40px) 18px;transition:background .15s,border-color .15s;display:grid}.drop.over{border-color:var(--ice);background:#9ed1ff1f}.drop p{color:#ffffffb8;margin:0}.drop .big{color:#fff;font-size:clamp(18px,2.4vw,22px);font-weight:600}.pick{flex-wrap:wrap;justify-content:center;gap:10px;display:flex}.pick label,.pick button{font:inherit}.pick input{opacity:0;width:1px;height:1px;position:absolute}.pick input:focus-visible+span{outline-offset:3px;outline:2px solid #fff}button.button{color:#fff;cursor:pointer;background:0 0}#status{min-height:1.5em;color:var(--ice);font-size:15px}#viewer:empty,body.viewing .scene,body.viewing .glass{display:none}.viewer{color:#222;z-index:10;background:#fff;flex-direction:column;display:flex;position:fixed;inset:0}.viewer-bar{color:#fff;background:#0d0f12;align-items:center;gap:12px;padding:8px 14px;font-size:14px;display:flex}.viewer-name{text-overflow:ellipsis;white-space:nowrap;min-width:0;font-weight:600;overflow:hidden}.viewer-kind{color:#fff9;text-overflow:ellipsis;white-space:nowrap;flex:1;overflow:hidden}.viewer-bar button{font:inherit;color:#0d0f12;cursor:pointer;white-space:nowrap;background:#fff;border:0;border-radius:999px;padding:5px 14px}.viewer-body{flex:1;min-height:0}@media (width<=520px){.viewer-kind{display:none}}</style>
-  <script type="module" crossorigin src="./assets/index-DuZ0tkRI.js"></script>
+  <script type="module" crossorigin src="./assets/index-DrMiEE_v.js"></script>
 </head>
 <body>
   <div class="scene" aria-hidden="true"></div>
@@ -84,7 +84,7 @@
         <ul class="verdicts">
           <li class="key"><b>NWB and HDF5:</b> any size, read lazily, with compressed data (gzip, Blosc, Zstandard, LZ4, LZF and more).</li>
           <li class="key"><b>MATLAB .mat:</b> v5 (the default) and v7.3, with structs, cells, text, logicals and complex numbers.</li>
-          <li><b>NumPy .npy and .npz:</b> every numeric type, text, both memory orders. Pickled objects are never loaded.</li>
+          <li><b>NumPy .npy and .npz:</b> integers, floats, complex numbers, booleans and text, in both memory orders. Pickled objects are never loaded.</li>
           <li><b>Zarr v2 and v3:</b> drop the folder, or open a public store with <code>?url=</code>.</li>
           <li><b>Views:</b> line plots, heatmaps, RGB images, tables and slicing through any dimension, by <a href="https://github.com/silx-kit/h5web">h5web</a>.</li>
         </ul>
