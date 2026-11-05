@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { inflateSync, inflateRawSync, deflateRawSync } from "node:zlib";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { npyGroup, npzGroup, parseNpyHeader, parseDescr } from "../src/formats/npy.js";
 import { parseMat5 } from "../src/formats/mat5.js";
 import { zarrTree, nodesFromKeys, nodesFromConsolidated } from "../src/formats/zarr.js";
@@ -12,7 +13,7 @@ import { sniff, hdf5Offset } from "../src/formats/detect.js";
 import { select, toRowMajor, parseSelection, find, FormatError } from "../src/formats/tree.js";
 import { readZip } from "../src/formats/zip.js";
 
-const fixture = (name) => new URL(`./fixtures/${name}`, import.meta.url).pathname;
+const fixture = (name) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
 const bytes = (name) => new Uint8Array(readFileSync(fixture(name)));
 const inflate = async (b) => new Uint8Array(inflateSync(b));
 const inflateRaw = async (b) => new Uint8Array(inflateRawSync(b));
@@ -146,7 +147,7 @@ test("Zarr: groups, arrays, attributes and chunked slices", async () => {
     for (const n of readdirSync(dir)) {
       const p = path.join(dir, n);
       if (statSync(p).isDirectory()) walk(p);
-      else keys.push(path.relative(root, p));
+      else keys.push(path.relative(root, p).split(path.sep).join("/"));
     }
   };
   walk(root);

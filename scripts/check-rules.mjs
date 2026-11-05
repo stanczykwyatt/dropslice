@@ -2,8 +2,9 @@
 // Content Security Policy. Run it with: node scripts/check-rules.mjs
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const files = [];
 const walk = (dir) => {
   for (const name of readdirSync(dir)) {
